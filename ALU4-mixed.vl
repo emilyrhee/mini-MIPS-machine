@@ -1,96 +1,259 @@
-// 4-bit MIPS ALU in Verilog (1-bit ALU bihavioral implementation)
+module D_flip_flop(D,CLK,Q);
+   input D,CLK; 
+   output Q; 
+   wire CLK1, Y;
+   not  not1 (CLK1,CLK);
+   D_latch D1(D,CLK, Y),
+           D2(Y,CLK1,Q);
+endmodule 
 
-module ALU (op,a,b,result,zero);
-   input [3:0] a;
-   input [3:0] b;
-   input [3:0] op;
-   output [3:0] result;
-   output zero;
-   ALU1   alu0 (a[0],b[0],op[3],op[2],op[1:0],set, op[2],c1,result[0]);
-   ALU1   alu1 (a[1],b[1],op[3],op[2],op[1:0],1'b0,c1,   c2,result[1]);
-   ALU1   alu2 (a[2],b[2],op[3],op[2],op[1:0],1'b0,c2,   c3,result[2]);
-   ALUmsb alu3 (a[3],b[3],op[3],op[2],op[1:0],1'b0,c3,   c4,result[3],set);
-   nor nor1(zero, result[0],result[1],result[2],result[3]);
+
+module D_latch(D,C,Q);
+   input D,C; 
+   output Q;
+   wire x,y,D1,Q1; 
+   nand nand1 (x,D, C), 
+        nand2 (y,D1,C), 
+        nand3 (Q,x,Q1),
+        nand4 (Q1,y,Q); 
+   not  not1  (D1,D);
+endmodule 
+
+module multi2x1(x,y,z,out);
+    input x,y,z;
+    output out;
+    wire a,b,c;
+
+    not g1(a,z);
+
+    and g2(b,x,a),
+        g3(c,y,z);
+    
+    or  g4(out,c,b);
 endmodule
 
-// 1-bit ALU for bits 0-2
-module ALU1 (a,b,ainvert,binvert,op,less,carryin,carryout,result);
-   input a,b,less,carryin,ainvert,binvert;
-   input [1:0] op;
-   output carryout,result;
-   reg result;
-   assign a_inv = ~a;	
-   assign a1 = ainvert? a_inv: a;
-   assign b_inv = ~b;	
-   assign b1 = binvert? b_inv: b; 
-   assign a_and_b = a1 && b1;
-   assign a_or_b = a1 || b1;
-   assign {carryout,sum} = a + b1 + carryin;
-   always @ (a_and_b,a_or_b,sum,less,op) 
-       case (op) 
-          2'b00: result = a_and_b;
-          2'b01: result = a_or_b;
-          2'b10: result = sum;
-          2'b11: result = less;
-       endcase
+module multi4x1(w,x,y,z,ctrl,out);
+    input w,x,y,z;
+    input[1:0] ctrl;
+    output out;
+    wire a,b,c,d;
+
+    multi2x1 mux1(w,x,ctrl[0],mux1out),
+             mux2(y,z,ctrl[0],mux2out),
+             mux3(mux1out,mux2out,ctrl[1],out);
+         
 endmodule
 
-// 1-bit ALU for the most significant bit
-module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,sum);
-   input a,b,less,carryin,ainvert,binvert;
-   input [1:0] op;
-   output carryout,result,sum;
-   reg result;
-   assign a_inv = ~a;
-   assign a1 = ainvert? a_inv: a; 
-   assign b_inv = ~b;
-   assign b1 = binvert? b_inv: b; 
-   assign a_and_b = a1 && b1;
-   assign a_or_b = a1 || b1;
-   assign {carryout,sum} = a + b1 + carryin;
-   always @ (a_and_b,a_or_b,sum,less,op) 
-       case (op) 
-          2'b00: result = a_and_b;
-          2'b01: result = a_or_b;
-          2'b10: result = sum;
-          2'b11: result = less;
-       endcase 
+module halfadder (S,C,x,y);
+    input x,y;
+    output S,C;
+   
+    xor (S,x,y);
+    and (C,x,y);
 endmodule
 
-// Test Module 
-module testALU;
-   reg signed [3:0] a;
-   reg signed [3:0] b;
-   reg [3:0] op;
-   wire signed [3:0] result;
-   wire zero;
-   ALU alu (op,a,b,result,zero);
-   initial begin
-    $display("op   a        b        result   zero");
-    $monitor ("%b %b(%d) %b(%d) %b(%d) %b",op,a,a,b,b,result,result,zero);
-       op = 4'b0000; a = 4'b0111; b = 4'b0001;  // AND
-	#1 op = 4'b0001; a = 4'b0101; b = 4'b0010;  // OR
-	#1 op = 4'b0010; a = 4'b0100; b = 4'b0010;  // ADD
-	#1 op = 4'b0010; a = 4'b0111; b = 4'b0001;  // ADD
-	#1 op = 4'b0110; a = 4'b0101; b = 4'b0011;  // SUB
-	#1 op = 4'b0110; a = 4'b1111; b = 4'b0001;  // SUB
-	#1 op = 4'b0111; a = 4'b0101; b = 4'b0001;  // SLT
-	#1 op = 4'b0111; a = 4'b1110; b = 4'b1111;  // SLT
-	#1 op = 4'b1100; a = 4'b0101; b = 4'b0010;  // NOR
-	#1 op = 4'b1101; a = 4'b0101; b = 4'b0010;  // NAND
+module full_adder (x,y,z,C,S);
+    input x,y,z;
+    output S,C;
+    wire S1,D1,D2;
+   
+    halfadder HA1 (S1,D1,x,y),
+              HA2 (S,D2,S1,z);
+    or g1 (C,D2,D1);
+endmodule
+
+module alumsb(x,y,S,op,less,Cin,result,overflow);
+    input x,y,Cin;
+    input [2:0] op;
+    output less,result,S,overflow;
+    wire a,b,c,d,e;
+
+    not n1(a,y);
+
+    multi2x1 mux4(y,a,op[2],b);
+
+    and g5(c,x,b);
+
+    or g6(d,x,b);
+
+    full_adder FA1(x,b,Cin,Cout,S);
+
+    multi4x1 mux5(c,d,S,1'b0,op[1:0],result);
+    
+    xor     (check,Cin,Cout);
+    and     (overflow,check,op[1]);
+endmodule
+
+module alusub(x,y,Cout,op,less,Cin,result);
+    input x,y,Cin,less;
+    input [2:0] op;
+    output Cout,result;
+    wire a,b,c,d,e;
+
+    not n1(a,y);
+
+    multi2x1 mux5(y,a,op[2],b);
+
+    and g5(c,x,b);
+
+    or g6(d,x,b);
+
+    full_adder FA1(x,b,Cin,Cout,S);
+         
+    multi4x1 mux6(c,d,S,less,op[1:0],result);
+endmodule
+
+module masterALU(A,B,Cout,ALUctl,less,Cin,Result,zero,overflow);
+    input[2:0] ALUctl;
+    input[3:0] A;
+    input[3:0] B;
+    input Cin,less;
+    output[3:0] Result;
+    output zero,overflow,Cout;
+    
+    alusub alu1(A[0],B[0],C1,ALUctl[2:0],set,ALUctl[2],Result[0]),
+          alu2(A[1],B[1],C2,ALUctl[2:0],1'b0,C1,Result[1]),
+          alu3(A[2],B[2],C3,ALUctl[2:0],1'b0,C2,Result[2]);
+           
+    alumsb alu4(A[3],B[3],set,ALUctl[2:0],less,C3,Result[3],overflow);
+    
+    or g1(or1,Result[0],Result[1]),
+      g2(or2,Result[2],Result[3]);
+       
+    nor g3(zero,or1,or2);
+    
+endmodule
+
+module cpu (Instruction, WriteData, CLK);
+   input [8:0] Instruction;
+   input CLK;
+   output [3:0] WriteData;
+   wire [8:0] IR;
+   wire [3:0] A,B,Result;
+   wire [2:0] ALUctl;
+   instr_reg instr(Instruction,CLK,IR);
+   control ctl (IR[8:6],Sel,ALUctl);
+   quad2x1mux mux(IR[5:2],Result,Sel,WriteData);
+   regfile regs(IR[5:4],IR[3:2],IR[1:0],WriteData,A,B,CLK);
+   masterALU alu1(A[3:0],B[3:0],Cout,ALUctl[2:0],less,Cin,Result[3:0],zero,overflow);
+       
+endmodule
+
+module instr_reg (Instruction,CLK,IR);
+   input [8:0] Instruction;
+   input CLK;
+   output [8:0] IR;
+D_flip_flop DFF1(Instruction[0],CLK,IR[0]),
+            DFF2(Instruction[1],CLK,IR[1]),
+            DFF3(Instruction[2],CLK,IR[2]),
+            DFF4(Instruction[3],CLK,IR[3]),
+            DFF5(Instruction[4],CLK,IR[4]),
+            DFF6(Instruction[5],CLK,IR[5]),
+            DFF7(Instruction[6],CLK,IR[6]),
+            DFF8(Instruction[7],CLK,IR[7]),
+            DFF9(Instruction[8],CLK,IR[8]);
+endmodule
+
+module control (OP,Sel,ALUctl);
+  input [2:0] OP;
+  output Sel;
+  output [2:0] ALUctl;
+  
+  or    g1 (a,OP[0],OP[1]);
+  nand  g2(Sel,a,OP[2]);
+  
+  xor   g3(b,OP[2],OP[0]);
+  not   g4(c,OP[1]);
+  and   g5(ALUctl[2],b,c);
+  
+  or    g6(d,OP[2],OP[1]),
+        g7(e,OP[1],OP[0]);
+ nand   g8(ALUctl[1],d,e);
+ 
+ not    g9(f,OP[2]),
+        g10(g,OP[1]),
+        g11(h,OP[0]);
+ and    g12(i,OP[1],f),
+        g13(j,OP[2],g),
+        g14(k,j,h),
+        g15(l,i,OP[0]);
+ or     g16(ALUctl[0],l,k);
+endmodule
+
+module quad2x1mux (I0,I1,Sel,Out);
+  input [3:0] I0,I1;
+  input Sel;
+  output [3:0] Out;
+  
+  not   g1(a,Sel),
+        g2(b,a);
+        
+  and   g3(c,a,I0[0]),
+        g4(d,a,I0[1]),
+        g5(e,a,I0[2]),
+        g6(f,a,I0[3]),
+        g7(g,b,I1[0]),
+        g8(h,b,I1[1]),
+        g9(i,b,I1[2]),
+        g10(j,b,I1[3]);
+        
+ or     g11(Out[0],c,g),
+        g12(Out[1],d,h),
+        g13(Out[2],e,i),
+        g14(Out[3],f,j);
+endmodule
+
+module regfile (ReadReg1,ReadReg2,WriteReg,WriteData,ReadData1,ReadData2,CLK);
+  input [1:0] ReadReg1,ReadReg2,WriteReg;
+  input [3:0] WriteData;
+  input CLK;
+  output [3:0] ReadData1,ReadData2;
+  reg [3:0] Regs[0:3]; 
+  assign ReadData1 = Regs[ReadReg1];
+  assign ReadData2 = Regs[ReadReg2];
+  initial Regs[0] = 0;
+  always @(negedge CLK)
+     Regs[WriteReg] = WriteData;
+endmodule
+
+module test_cpu;
+   reg [8:0] Instruction;
+   reg CLK;
+   wire [3:0] WriteData;
+   cpu cpu1 (Instruction, WriteData, CLK);
+   initial
+   begin
+     $display("\nCLK Instruction WriteData\n-------------------------"); 
+     $monitor("%b   %b   %d (%b)", CLK,Instruction,WriteData,WriteData);
+     #1 Instruction = 9'b101_0111_01; // li $1, 7 # $1 = 7
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b101_0101_10; // li $2, 5 # $2 = 5 
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b001_01_10_11; // sub $3, $1, $2 # $3 = 2
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b101_1010_11; // li $3,10 # $3=10
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b011_10_11_10; // or $2,$2,$3 #$2=15
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b010_10_11_11; // and $3,$2,$3 #$3=10
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b100_11_10_10; // slt $2,$3,$2 #$2=1
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b000_11_10_10; // add $2,$3,$2 #$2=11
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b000_01_10_11; // add $3,$1,$2 #$3=2
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
+     #1 Instruction = 9'b100_10_11_01; // slt $1,$2,$3 #$1=0
+        CLK=1;
+     #1 CLK=0; // Negative edge - execute instruction
    end
 endmodule
-
-/* Output
-op   a        b        result   zero
-0000 0111( 7) 0001( 1) 0001( 1) 0
-0001 0101( 5) 0010( 2) 0111( 7) 0
-0010 0100( 4) 0010( 2) 0110( 6) 0
-0010 0111( 7) 0001( 1) 1000(-8) 0
-0110 0101( 5) 0011( 3) 0010( 2) 0
-0110 1111(-1) 0001( 1) 1110(-2) 0
-0111 0101( 5) 0001( 1) 0000( 0) 1
-0111 1110(-2) 1111(-1) 0001( 1) 0
-1100 0101( 5) 0010( 2) 1000(-8) 0
-1101 0101( 5) 0010( 2) 1111(-1) 0
-*/
