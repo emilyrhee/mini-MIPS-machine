@@ -13,22 +13,85 @@ module reg_file (RR1,RR2,WR,WD,RegWrite,RD1,RD2,clock);
 	    Regs[WR] <= WD;
 endmodule
 
-module alu (ALUctl,A,B,ALUOut,Zero);
-  input [3:0] ALUctl;
-  input [15:0] A,B;
-  output reg [15:0] ALUOut;
-  output Zero;
-  always @(ALUctl, A, B) // reevaluate if these change
-    case (ALUctl)
-      4'b0000: ALUOut <= A & B;
-      4'b0001: ALUOut <= A | B;
-      4'b0010: ALUOut <= A + B;
-      4'b0110: ALUOut <= A - B;
-      4'b0111: ALUOut <= A < B ? 1:0;
-      4'b1100: ALUOut <= ~A & ~B;
-      4'b1101: ALUOut <= ~A | ~B;
-    endcase
-  assign Zero = (ALUOut==0); // Zero is true if ALUOut is 0
+module mux2x1(x,y,z,out);
+    input x,y,z;
+    output out;
+    wire a,b,c;
+
+    not g1(a,z);
+
+    and g2(b,x,a),
+        g3(c,y,z);
+    
+    or  g4(out,c,b);
+endmodule
+
+// 1-bit ALU for bits 0-2
+module ALU1 (a,b,ainvert,binvert,op,less,carryin,carryout,result);
+   input a,b,less,carryin,ainvert,binvert;
+   input [1:0] op;
+   output carryout,result;
+   reg result;
+   assign a_inv = ~a;	
+   assign a1 = ainvert? a_inv: a;
+   assign b_inv = ~b;	
+   assign b1 = binvert? b_inv: b; 
+   assign a_and_b = a1 && b1;
+   assign a_or_b = a1 || b1;
+   assign {carryout,sum} = a + b1 + carryin;
+   always @ (a_and_b,a_or_b,sum,less,op) 
+       case (op) 
+          2'b00: result = a_and_b;
+          2'b01: result = a_or_b;
+          2'b10: result = sum;
+          2'b11: result = less;
+       endcase
+endmodule
+
+// 1-bit ALU for the most significant bit
+module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,sum);
+   input a,b,less,carryin,ainvert,binvert;
+   input [1:0] op;
+   output carryout,result,sum;
+   reg result;
+   assign a_inv = ~a;
+   assign a1 = ainvert? a_inv: a; 
+   assign b_inv = ~b;
+   assign b1 = binvert? b_inv: b; 
+   assign a_and_b = a1 && b1;
+   assign a_or_b = a1 || b1;
+   assign {carryout,sum} = a + b1 + carryin;
+   always @ (a_and_b,a_or_b,sum,less,op) 
+       case (op) 
+          2'b00: result = a_and_b;
+          2'b01: result = a_or_b;
+          2'b10: result = sum;
+          2'b11: result = less;
+       endcase 
+endmodule
+
+module alu (op,a,b,result,zero);
+  input [3:0] op;
+  input [15:0] a,b;
+  output [15:0] result;
+  output zero;
+  ALU1   alu0 (a[0],b[0],op[3],op[2],op[1:0],set, op[2],c1,result[0]);
+  ALU1   alu1 (a[1],b[1],op[3],op[2],op[1:0],1'b0,c1,   c2,result[1]);
+  ALU1   alu2 (a[2],b[2],op[3],op[2],op[1:0],1'b0,c2,   c3,result[2]);
+  ALU1   alu3 (a[3],b[3],op[3],op[2],op[1:0],1'b0,c3,   c4,result[3]);
+  ALU1   alu4 (a[4],b[4],op[3],op[2],op[1:0],1'b0,c4,   c5,result[4]);
+  ALU1   alu5 (a[5],b[5],op[3],op[2],op[1:0],1'b0,c5,   c6,result[5]);
+  ALU1   alu6 (a[6],b[6],op[3],op[2],op[1:0],1'b0,c6,   c7,result[6]);
+  ALU1   alu7 (a[7],b[7],op[3],op[2],op[1:0],1'b0,c7,   c8,result[7]);
+  ALU1   alu8 (a[8],b[8],op[3],op[2],op[1:0],1'b0,c8,   c9,result[8]);
+  ALU1   alu9 (a[9],b[9],op[3],op[2],op[1:0],1'b0,c9,   c10,result[9]);
+  ALU1   alu10(a[10],b[10],op[3],op[2],op[1:0],1'b0,c10,c11,result[10]);
+  ALU1   alu11(a[11],b[11],op[3],op[2],op[1:0],1'b0,c11,c12,result[11]);
+  ALU1   alu12(a[12],b[12],op[3],op[2],op[1:0],1'b0,c12,c13,result[12]);
+  ALU1   alu13(a[13],b[13],op[3],op[2],op[1:0],1'b0,c13,c14,result[13]);
+  ALU1   alu14(a[14],b[14],op[3],op[2],op[1:0],1'b0,c14,c15,result[14]);
+  ALUmsb alu15 (a[15],b[15],op[3],op[2],op[1:0],1'b0,c14,   c15,result[15],set);
+  nor nor1(zero, result[0],result[1],result[2],result[3]);
 endmodule
 
 module MainControl (Op,Control); 
