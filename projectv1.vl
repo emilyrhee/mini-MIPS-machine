@@ -13,6 +13,7 @@ module reg_file (RR1,RR2,WR,WD,RegWrite,RD1,RD2,clock);
 	    Regs[WR] <= WD;
 endmodule
 
+// Computes the sum and carry of two input bits.
 module halfadder (S,C,x,y);
     input x,y;
     output S,C;
@@ -21,6 +22,7 @@ module halfadder (S,C,x,y);
     and (C,x,y);
 endmodule
 
+// Combines two half-adders to compute sum & carry of 3 input bits.
 module full_adder (x,y,z,C,S);
     input x,y,z;
     output S,C;
@@ -31,6 +33,7 @@ module full_adder (x,y,z,C,S);
     or g1 (C,D2,D1);
 endmodule
 
+// Selects between two inputs (x and y) based on control signal z.
 module mux2x1(x,y,z,out);
     input x,y,z;
     output out;
@@ -44,6 +47,7 @@ module mux2x1(x,y,z,out);
     or  g4(out,c,b);
 endmodule
 
+// Selects between four inputs (w, x, y, z) based on control signal.
 module mux3x1(w,x,y,z,ctrl,out);
     input w,x,y,z;
     input[1:0] ctrl;
@@ -90,6 +94,7 @@ module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,set);
    mux3x1 muxop(f, g, h, less, op, result);
 endmodule
 
+// 16-bit ALU from combining 16 1-bit ALUs.
 module alu (op,a,b,result,zero);
   input [3:0] op;
   input [15:0] a,b;
@@ -114,6 +119,7 @@ module alu (op,a,b,result,zero);
   nor nor1(zero, result[0],result[1],result[2],result[3]);
 endmodule
 
+// Decodes instruction opcode and generates control signals.
 module MainControl (Op,Control); 
   input [3:0] Op;
   output reg [6:0] Control;
@@ -130,6 +136,7 @@ module MainControl (Op,Control);
   endcase
 endmodule
 
+// Fetches instructions, executes them, and updates the PC.
 module CPU (clock,PC,ALUOut,IR);
   input clock;
   output [15:0] ALUOut,IR,PC;
