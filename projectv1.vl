@@ -73,25 +73,21 @@ module ALU1 (a,b,ainvert,binvert,op,less,carryin,carryout,result);
 endmodule
 
 // 1-bit ALU for the most significant bit
-module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,sum);
+module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,set);
    input a,b,less,carryin,ainvert,binvert;
    input [1:0] op;
-   output carryout,result,sum;
-   reg result;
-   assign a_inv = ~a;
-   assign a1 = ainvert? a_inv: a; 
-   assign b_inv = ~b;
-   assign b1 = binvert? b_inv: b; 
-   assign a_and_b = a1 && b1;
-   assign a_or_b = a1 || b1;
-   assign {carryout,sum} = a + b1 + carryin;
-   always @ (a_and_b,a_or_b,sum,less,op) 
-       case (op) 
-          2'b00: result = a_and_b;
-          2'b01: result = a_or_b;
-          2'b10: result = sum;
-          2'b11: result = less;
-       endcase 
+   output carryout,result,set;
+   wire nota, notab, c, f, g, h;
+   
+   not na(nota, a),
+       nb(notb, b);
+   mux2x1 muxa(a, nota, ainvert, c),
+          muxb(b, notb, binvert, d);
+   and(f, c, d);
+   or(g, c, d);
+   full_adder fa(c, d, carryin, carryout, h);
+   assign set = h;
+   mux3x1 muxop(f, g, h, less, op, result);
 endmodule
 
 module alu (op,a,b,result,zero);
