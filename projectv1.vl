@@ -95,28 +95,28 @@ module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,set);
 endmodule
 
 // 16-bit ALU from combining 16 1-bit ALUs.
-module alu (op,a,b,result,zero);
+module alu (op,a,b,ALUout,zero);
   input [3:0] op;
   input [15:0] a,b;
-  output [15:0] result;
+  output [15:0] ALUout;
   output zero;
-  ALU1   alu0 (a[0],b[0],op[3],op[2],op[1:0],set, op[2],c1,result[0]);
-  ALU1   alu1 (a[1],b[1],op[3],op[2],op[1:0],1'b0,c1,   c2,result[1]);
-  ALU1   alu2 (a[2],b[2],op[3],op[2],op[1:0],1'b0,c2,   c3,result[2]);
-  ALU1   alu3 (a[3],b[3],op[3],op[2],op[1:0],1'b0,c3,   c4,result[3]);
-  ALU1   alu4 (a[4],b[4],op[3],op[2],op[1:0],1'b0,c4,   c5,result[4]);
-  ALU1   alu5 (a[5],b[5],op[3],op[2],op[1:0],1'b0,c5,   c6,result[5]);
-  ALU1   alu6 (a[6],b[6],op[3],op[2],op[1:0],1'b0,c6,   c7,result[6]);
-  ALU1   alu7 (a[7],b[7],op[3],op[2],op[1:0],1'b0,c7,   c8,result[7]);
-  ALU1   alu8 (a[8],b[8],op[3],op[2],op[1:0],1'b0,c8,   c9,result[8]);
-  ALU1   alu9 (a[9],b[9],op[3],op[2],op[1:0],1'b0,c9,   c10,result[9]);
-  ALU1   alu10(a[10],b[10],op[3],op[2],op[1:0],1'b0,c10,c11,result[10]);
-  ALU1   alu11(a[11],b[11],op[3],op[2],op[1:0],1'b0,c11,c12,result[11]);
-  ALU1   alu12(a[12],b[12],op[3],op[2],op[1:0],1'b0,c12,c13,result[12]);
-  ALU1   alu13(a[13],b[13],op[3],op[2],op[1:0],1'b0,c13,c14,result[13]);
-  ALU1   alu14(a[14],b[14],op[3],op[2],op[1:0],1'b0,c14,c15,result[14]);
-  ALUmsb alu15 (a[15],b[15],op[3],op[2],op[1:0],1'b0,c14,   c15,result[15],set);
-  nor nor1(zero, result[0],result[1],result[2],result[3]);
+  ALU1   alu0 (a[0],b[0],op[3],op[2],op[1:0],set, op[2],c1,ALUout[0]);
+  ALU1   alu1 (a[1],b[1],op[3],op[2],op[1:0],1'b0,c1,   c2,ALUout[1]);
+  ALU1   alu2 (a[2],b[2],op[3],op[2],op[1:0],1'b0,c2,   c3,ALUout[2]);
+  ALU1   alu3 (a[3],b[3],op[3],op[2],op[1:0],1'b0,c3,   c4,ALUout[3]);
+  ALU1   alu4 (a[4],b[4],op[3],op[2],op[1:0],1'b0,c4,   c5,ALUout[4]);
+  ALU1   alu5 (a[5],b[5],op[3],op[2],op[1:0],1'b0,c5,   c6,ALUout[5]);
+  ALU1   alu6 (a[6],b[6],op[3],op[2],op[1:0],1'b0,c6,   c7,ALUout[6]);
+  ALU1   alu7 (a[7],b[7],op[3],op[2],op[1:0],1'b0,c7,   c8,ALUout[7]);
+  ALU1   alu8 (a[8],b[8],op[3],op[2],op[1:0],1'b0,c8,   c9,ALUout[8]);
+  ALU1   alu9 (a[9],b[9],op[3],op[2],op[1:0],1'b0,c9,   c10,ALUout[9]);
+  ALU1   alu10(a[10],b[10],op[3],op[2],op[1:0],1'b0,c10,c11,ALUout[10]);
+  ALU1   alu11(a[11],b[11],op[3],op[2],op[1:0],1'b0,c11,c12,ALUout[11]);
+  ALU1   alu12(a[12],b[12],op[3],op[2],op[1:0],1'b0,c12,c13,ALUout[12]);
+  ALU1   alu13(a[13],b[13],op[3],op[2],op[1:0],1'b0,c13,c14,ALUout[13]);
+  ALU1   alu14(a[14],b[14],op[3],op[2],op[1:0],1'b0,c14,c15,ALUout[14]);
+  ALUmsb alu15 (a[15],b[15],op[3],op[2],op[1:0],1'b0,c14,   c15,ALUout[15],set);
+  nor nor1(zero, ALUout[0],ALUout[1],ALUout[2],ALUout[3]);
 endmodule
 
 // Decodes instruction opcode and generates control signals.
@@ -136,7 +136,7 @@ module MainControl (Op,Control);
   endcase
 endmodule
 
-// Fetches instructions, executes them, and updates the PC.
+// Implements  single-cycle CPU that fetches instructions, executes them, and updates the PC.
 module CPU (clock,PC,ALUOut,IR);
   input clock;
   output [15:0] ALUOut,IR,PC;
