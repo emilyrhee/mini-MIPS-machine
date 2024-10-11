@@ -13,6 +13,24 @@ module reg_file (RR1,RR2,WR,WD,RegWrite,RD1,RD2,clock);
 	    Regs[WR] <= WD;
 endmodule
 
+module halfadder (S,C,x,y);
+    input x,y;
+    output S,C;
+   
+    xor (S,x,y);
+    and (C,x,y);
+endmodule
+
+module full_adder (x,y,z,C,S);
+    input x,y,z;
+    output S,C;
+    wire S1,D1,D2;
+   
+    halfadder HA1 (S1,D1,x,y),
+              HA2 (S,D2,S1,z);
+    or g1 (C,D2,D1);
+endmodule
+
 module mux2x1(x,y,z,out);
     input x,y,z;
     output out;
@@ -26,26 +44,32 @@ module mux2x1(x,y,z,out);
     or  g4(out,c,b);
 endmodule
 
+module mux3x1(w,x,y,z,ctrl,out);
+    input w,x,y,z;
+    input[1:0] ctrl;
+    output out;
+    wire a,b,c,d;
+
+    mux2x1 mux1(w,x,ctrl[0],mux1out),
+           mux2(y,z,ctrl[0],mux2out),
+           mux3(mux1out,mux2out,ctrl[1],out);
+endmodule
+
 // 1-bit ALU for bits 0-2
 module ALU1 (a,b,ainvert,binvert,op,less,carryin,carryout,result);
    input a,b,less,carryin,ainvert,binvert;
    input [1:0] op;
    output carryout,result;
-   reg result;
-   assign a_inv = ~a;	
-   assign a1 = ainvert? a_inv: a;
-   assign b_inv = ~b;	
-   assign b1 = binvert? b_inv: b; 
-   assign a_and_b = a1 && b1;
-   assign a_or_b = a1 || b1;
-   assign {carryout,sum} = a + b1 + carryin;
-   always @ (a_and_b,a_or_b,sum,less,op) 
-       case (op) 
-          2'b00: result = a_and_b;
-          2'b01: result = a_or_b;
-          2'b10: result = sum;
-          2'b11: result = less;
-       endcase
+   wire nota, notb, c, d, e, f, sum;
+
+   not na(nota, a),
+       nb(notb, b);
+   mux2x1 muxa(a, nota, ainvert, c),
+          muxb(b, notb, binvert, d);
+   and(e, c, d);
+   or(f, c, d);
+   full_adder fa(c, d, carryin, carryout, sum);
+   mux3x1 muxop(e, f, sum, less, op, result);
 endmodule
 
 // 1-bit ALU for the most significant bit
