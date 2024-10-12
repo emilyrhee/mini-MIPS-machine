@@ -81,7 +81,7 @@ module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,set);
    input a,b,less,carryin,ainvert,binvert;
    input [1:0] op;
    output carryout,result,set;
-   wire nota, notab, c, f, g, h;
+   wire nota, notab, c, f, g;
    
    not na(nota, a),
        nb(notb, b);
@@ -89,9 +89,8 @@ module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,set);
           muxb(b, notb, binvert, d);
    and(f, c, d);
    or(g, c, d);
-   full_adder fa(c, d, carryin, carryout, h);
-   assign set = h;
-   mux3x1 muxop(f, g, h, less, op, result);
+   full_adder fa(c, d, carryin, carryout, set);
+   mux4x1 muxop(f, g, set, less, op, result);
 endmodule
 
 // 16-bit ALU from combining 16 1-bit ALUs.
