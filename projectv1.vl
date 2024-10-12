@@ -48,11 +48,10 @@ module mux2x1(x,y,z,out);
 endmodule
 
 // Selects between four inputs (w, x, y, z) based on control signal.
-module mux3x1(w,x,y,z,ctrl,out);
+module mux4x1(w,x,y,z,ctrl,out);
     input w,x,y,z;
     input[1:0] ctrl;
     output out;
-    wire a,b,c,d;
 
     mux2x1 mux1(w,x,ctrl[0],mux1out),
            mux2(y,z,ctrl[0],mux2out),
@@ -73,7 +72,7 @@ module ALU1 (a,b,ainvert,binvert,op,less,carryin,carryout,result);
    and(e, c, d);
    or(f, c, d);
    full_adder fa(c, d, carryin, carryout, sum);
-   mux3x1 muxop(e, f, sum, less, op, result);
+   mux4x1 muxop(e, f, sum, less, op, result);
 endmodule
 
 // 1-bit ALU for the most significant bit
