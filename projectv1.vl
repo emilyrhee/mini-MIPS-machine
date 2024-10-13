@@ -58,7 +58,7 @@ module mux4x1(w,x,y,z,ctrl,out);
            mux3(mux1out,mux2out,ctrl[1],out);
 endmodule
 
-// 1-bit ALU for bits 0-2
+// 1-bit ALU
 module ALU1 (a,b,ainvert,binvert,op,less,carryin,carryout,result);
    input a,b,less,carryin,ainvert,binvert;
    input [1:0] op;
@@ -134,6 +134,84 @@ module MainControl (Op,Control);
   endcase
 endmodule
 
+// Selects between two 2-bit inputs (I0 and I1) based on control signal Sel.
+module doublemux2x1 (I0,I1,Sel,Out);
+  input [1:0] I0,I1;
+  input Sel;
+  output [1:0] Out;
+  
+  not   g1(a,Sel),
+        g2(b,a);
+        
+  and   g3(c,a,I0[0]),
+        g4(d,a,I0[1]),
+        g7(g,b,I1[0]),
+        g8(h,b,I1[1]);
+        
+  or    g11(Out[0],c,g),
+        g12(Out[1],d,h);
+endmodule
+
+// Selects between two 16-bit inputs (I0 and I1) based on control signal Sel.
+module sexdecuplemux2x1 (I0,I1,Sel,Out);
+  input [15:0] I0,I1;
+  input Sel;
+  output [15:0] Out;
+  
+  not   g1(a,Sel),
+        g2(b,a);
+        
+  and   g3(c,a,I0[0]),
+        g4(d,a,I0[1]),
+        g5(e,a,I0[2]),
+        g6(f,a,I0[3]),
+        g7(g,a,I0[4]),
+        g8(h,a,I0[5]),
+        g9(i,a,I0[6]),
+        g10(j,a,I0[7]),
+        g11(k,a,I0[8]),
+        g12(l,a,I0[9]),
+        g13(m,a,I0[10]),
+        g14(n,a,I0[11]),
+        g15(o,a,I0[12]),
+        g16(p,a,I0[13]),
+        g17(q,a,I0[14]),
+        g18(r,a,I0[15]),
+        g19(s,b,I1[0]),
+        g20(t,b,I1[1]),
+        g21(u,b,I1[2]),
+        g22(v,b,I1[3]),
+        g23(w,b,I1[4]),
+        g24(x,b,I1[5]),
+        g25(y,b,I1[6]),
+        g26(z,b,I1[7]),
+        g27(A,b,I1[8]),
+        g28(B,b,I1[9]),
+        g29(C,b,I1[10]),
+        g30(D,b,I1[11]),
+        g31(E,b,I1[12]),
+        g32(F,b,I1[13]),
+        g33(G,b,I1[14]),
+        g34(H,b,I1[15]);
+        
+ or     g35(Out[0],c,s),
+        g36(Out[1],d,t),
+        g37(Out[2],e,u),
+        g38(Out[3],f,v),
+        g39(Out[4],g,w),
+        g40(Out[5],h,x),
+        g41(Out[6],i,y),
+        g42(Out[7],j,z),
+        g43(Out[8],k,A),
+        g44(Out[9],l,B),
+        g45(Out[10],m,C),
+        g46(Out[11],n,D),
+        g47(Out[12],o,E),
+        g48(Out[13],p,F),
+        g49(Out[14],q,G),
+        g50(Out[15],r,H);
+endmodule
+
 // Implements  single-cycle CPU that fetches instructions, executes them, and updates the PC.
 module CPU (clock,PC,ALUOut,IR);
   input clock;
@@ -157,8 +235,8 @@ module CPU (clock,PC,ALUOut,IR);
   end
   initial PC = 0;
   assign IR = IMemory[PC>>1];
-  assign WR = (RegDst) ? IR[7:6]: IR[9:8]; // RegDst Mux
-  assign B  = (ALUSrc) ? SignExtend: RD2; // ALUSrc Mux 
+  doublemux2x1 muxwr(IR[9:8], IR[7:6], RegDst, WR);
+  sexdecuplemux2x1 muxb(RD2, SignExtend, ALUSrc, B);
   assign SignExtend = {{8{IR[7]}},IR[7:0]}; // sign extension unit
   reg_file rf (IR[11:10],IR[9:8],WR,ALUOut,RegWrite,A,RD2,clock);
   alu fetch (4'b0010,PC,16'b10,NextPC,Unused);
