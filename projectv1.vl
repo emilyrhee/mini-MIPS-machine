@@ -134,20 +134,18 @@ endmodule
 // Decodes instruction opcode and generates control signals. 
 module MainControl (Op,Control);  
     input [3:0] Op; 
-    output reg [6:0] Control; 
+    output reg [9:0] Control; 
     
-    // Control bits: RegDst,ALUSrc,RegWrite,ALUctl 
-    
+    // Control bits: RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Branch,ALUctl
     always @(Op) case (Op) 
-    
-    4'b0000: Control <= 7'b1_0_1_0010; //ADD 
-    4'b0001: Control <= 7'b1_0_1_0110; //SUB 
-    4'b0010: Control <= 7'b1_0_1_0000; //AND 
-    4'b0011: Control <= 7'b1_0_1_0001; //OR 
-    4'b0100: Control <= 7'b1_0_1_1100; //NOR 
-    4'b0101: Control <= 7'b1_0_1_1101; //NAND 
-    4'b0110: Control <= 7'b1_0_1_0111; //SLT 
-    4'b0111: Control <= 7'b0_1_1_0010; // ADDI 
+      4'b0000: Control <= 10'b1_0_0_1_0_0_0010; //ADD 
+      4'b0001: Control <= 10'b1_0_0_1_0_0_0110; //SUB 
+      4'b0010: Control <= 10'b1_0_0_1_0_0_0000; //AND 
+      4'b0011: Control <= 10'b1_0_0_1_0_0_0001; //OR 
+      4'b0100: Control <= 10'b1_0_0_1_0_0_1100; //NOR 
+      4'b0101: Control <= 10'b1_0_0_1_0_0_1101; //NAND 
+      4'b0110: Control <= 10'b1_0_0_1_0_0_0111; //SLT 
+      4'b0111: Control <= 10'b0_1_0_1_0_1_0010; //ADDI 
     endcase 
 endmodule 
 
@@ -200,8 +198,8 @@ module CPU (clock,PC,ALUOut,IR);
     input clock;
     output [15:0] ALUOut,IR,PC; 
     reg[15:0] PC; 
-    reg[15:0] IMemory[0:1023]; 
-    wire [15:0] IR,NextPC,A,B,ALUOut,RD2,SignExtend; 
+    reg[15:0] IMemory[0:1023], DMemory[0:1023]; 
+    wire [15:0] IR,SignExtend,NextPC,RD2,A,B,ALUOut,PCplus4,Target;
     wire [3:0] ALUctl; 
     wire [1:0] WR;  
     
@@ -215,20 +213,24 @@ module CPU (clock,PC,ALUOut,IR);
         IMemory[5] = 16'b0000_10_11_11_000000; // add $t3, $t2, $t3 ($t3=22) 
         IMemory[6] = 16'b0100_10_11_01_000000; // nor $t1, $t2, $t3 ($t1=-32) 
         IMemory[7] = 16'b0110_11_10_01_000000; // slt $t1, $t3, $t2 ($t1=0) 
-        IMemory[8] = 16'b0110_10_11_01_000000; // slt $t1, $t2, $t3 ($t1=1) 
+        IMemory[8] = 16'b0110_10_11_01_000000; // slt $t1, $t2, $t3 ($t1=1)
         end 
         
         initial PC = 0; 
-        assign IR = IMemory[PC>>1]; 
-        doublemux2x1 muxwr(IR[9:8], IR[7:6], RegDst, WR); 
-        sexdecuplexmux2x1 muxb(RD2, SignExtend, ALUSrc, B); 
-        assign SignExtend = {{8{IR[7]}},IR[7:0]}; // sign extension unit 
+        assign IR = IMemory[PC>>1];
+        assign SignExtend = {{8{IR[7]}},IR[7:0]}; // sign extension unit
         reg_file rf (IR[11:10],IR[9:8],WR,ALUOut,RegWrite,A,RD2,clock); 
         alu fetch (4'b0010,PC,16'b10,NextPC,Unused), 
-            ex (ALUctl, A, B, ALUOut, Zero); 
-        MainControl MainCtr (IR[15:12],{RegDst,ALUSrc,RegWrite,ALUctl});  
+          ex (ALUctl, A, B, ALUOut, Zero),
+          branch (4'b0010,SignExtend<<2,PCplus4,Target,Unused2);
+        MainControl MainCtr (IR[15:12],{RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Branch,ALUctl});  
+        doublemux2x1 muxwr(IR[9:8], IR[7:6], RegDst, WR); 
+        assign WD = (MemtoReg) ? DMemory[ALUOut>>2]: ALUOut; // MemtoReg Mux (make this gate-level)
+        sexdecuplexmux2x1 muxb(RD2, SignExtend, ALUSrc, B); 
+        assign NextPC = (Branch && Zero) ? Target: PCplus4; // Branch Mux (make this gate-level)
         always @(negedge clock) begin  
-        PC <= NextPC; 
+          PC <= NextPC; 
+          if (MemWrite) DMemory[ALUOut>>2] <= RD2;
         end 
 endmodule 
 
