@@ -221,8 +221,8 @@ module CPU (clock,PC,ALUOut,IR);
         assign SignExtend = {{8{IR[7]}},IR[7:0]}; // sign extension unit
         reg_file rf (IR[11:10],IR[9:8],WR,ALUOut,RegWrite,A,RD2,clock); 
         alu fetch (4'b0010,PC,16'b10,NextPC,Unused), 
-          ex (ALUctl, A, B, ALUOut, Zero),
-          branch (4'b0010,SignExtend<<2,PCplus4,Target,Unused2);
+            ex (ALUctl, A, B, ALUOut, Zero),
+            branch (4'b0010,SignExtend<<2,PCplus4,Target,Unused2);
         MainControl MainCtr (IR[15:12],{RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Branch,ALUctl});  
         doublemux2x1 muxwr(IR[9:8], IR[7:6], RegDst, WR); 
         assign WD = (MemtoReg) ? DMemory[ALUOut>>2]: ALUOut; // MemtoReg Mux (make this gate-level)
