@@ -134,18 +134,22 @@ endmodule
 // Decodes instruction opcode and generates control signals. 
 module MainControl (Op,Control);  
     input [3:0] Op; 
-    output reg [9:0] Control; 
+    output reg [10:0] Control; 
     
-    // Control bits: RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Branch,ALUctl
+    // Control bits: RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Beq,Bne,ALUctl
     always @(Op) case (Op) 
-      4'b0000: Control <= 10'b1_0_0_1_0_0_0010; //ADD 
-      4'b0001: Control <= 10'b1_0_0_1_0_0_0110; //SUB 
-      4'b0010: Control <= 10'b1_0_0_1_0_0_0000; //AND 
-      4'b0011: Control <= 10'b1_0_0_1_0_0_0001; //OR 
-      4'b0100: Control <= 10'b1_0_0_1_0_0_1100; //NOR 
-      4'b0101: Control <= 10'b1_0_0_1_0_0_1101; //NAND 
-      4'b0110: Control <= 10'b1_0_0_1_0_0_0111; //SLT 
-      4'b0111: Control <= 10'b0_1_0_1_0_1_0010; //ADDI 
+      4'b0000: Control <= 11'b1_0_0_1_0_0_0_0010; //ADD 
+      4'b0001: Control <= 11'b1_0_0_1_0_0_0_0110; //SUB 
+      4'b0010: Control <= 11'b1_0_0_1_0_0_0_0000; //AND 
+      4'b0011: Control <= 11'b1_0_0_1_0_0_0_0001; //OR 
+      4'b0100: Control <= 11'b1_0_0_1_0_0_0_1100; //NOR 
+      4'b0101: Control <= 11'b1_0_0_1_0_0_0_1101; //NAND 
+      4'b0110: Control <= 11'b1_0_0_1_0_0_0_0111; //SLT 
+      4'b0111: Control <= 11'b0_1_0_1_0_0_0_0010; //ADDI 
+      4'b0111: Control <= 11'b0_1_1_1_0_0_0_0010; //LW 
+      4'b0111: Control <= 11'b0_1_0_0_1_0_0_0010; //SW 
+      4'b0111: Control <= 11'b0_0_0_0_0_1_0_0010; //BEQ 
+      4'b0111: Control <= 11'b0_0_0_0_1_0_1_0010; //BNE 
     endcase 
 endmodule 
 
@@ -205,15 +209,15 @@ module CPU (clock,PC,ALUOut,IR);
     
         // Test Program 
         initial begin 
-        IMemory[0] = 16'b0111_00_01_00001111; // addi $t1, $0, 15 ($t1=15) 
-        IMemory[1] = 16'b0111_00_10_00000111; // addi $t2, $0, 7 ($t2=7) 
-        IMemory[2] = 16'b0010_01_10_11_000000; // and $t3, $t1, $t2 ($t3=7) 
-        IMemory[3] = 16'b0001_01_11_10_000000; // sub $t2, $t1, $t3 ($t2=8) 
-        IMemory[4] = 16'b0011_10_11_10_000000; // or $t2, $t2, $t3 ($t2=15) 
-        IMemory[5] = 16'b0000_10_11_11_000000; // add $t3, $t2, $t3 ($t3=22) 
-        IMemory[6] = 16'b0100_10_11_01_000000; // nor $t1, $t2, $t3 ($t1=-32) 
-        IMemory[7] = 16'b0110_11_10_01_000000; // slt $t1, $t3, $t2 ($t1=0) 
-        IMemory[8] = 16'b0110_10_11_01_000000; // slt $t1, $t2, $t3 ($t1=1)
+            IMemory[0] = 16'b0111_00_01_00001111; // addi $t1, $0, 15 ($t1=15) 
+            IMemory[1] = 16'b0111_00_10_00000111; // addi $t2, $0, 7 ($t2=7) 
+            IMemory[2] = 16'b0010_01_10_11_000000; // and $t3, $t1, $t2 ($t3=7) 
+            IMemory[3] = 16'b0001_01_11_10_000000; // sub $t2, $t1, $t3 ($t2=8) 
+            IMemory[4] = 16'b0011_10_11_10_000000; // or $t2, $t2, $t3 ($t2=15) 
+            IMemory[5] = 16'b0000_10_11_11_000000; // add $t3, $t2, $t3 ($t3=22) 
+            IMemory[6] = 16'b0100_10_11_01_000000; // nor $t1, $t2, $t3 ($t1=-32) 
+            IMemory[7] = 16'b0110_11_10_01_000000; // slt $t1, $t3, $t2 ($t1=0) 
+            IMemory[8] = 16'b0110_10_11_01_000000; // slt $t1, $t2, $t3 ($t1=1)
         end 
         
         initial PC = 0; 
@@ -223,14 +227,14 @@ module CPU (clock,PC,ALUOut,IR);
         alu fetch (4'b0010,PC,16'b10,NextPC,Unused), 
             ex (ALUctl, A, B, ALUOut, Zero),
             branch (4'b0010,SignExtend<<2,PCplus4,Target,Unused2);
-        MainControl MainCtr (IR[15:12],{RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Branch,ALUctl});  
+        MainControl MainCtr (IR[15:12],{RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Beq,Bne,ALUctl});  
         doublemux2x1 muxwr(IR[9:8], IR[7:6], RegDst, WR); 
         assign WD = (MemtoReg) ? DMemory[ALUOut>>2]: ALUOut; // MemtoReg Mux (make this gate-level)
         sexdecuplexmux2x1 muxb(RD2, SignExtend, ALUSrc, B); 
-        assign NextPC = (Branch && Zero) ? Target: PCplus4; // Branch Mux (make this gate-level)
+        assign NextPC = (Beq && Zero || Bne && ~Zero) ? Target: PCplus4; // Branch Mux (make this gate-level)
         always @(negedge clock) begin  
-          PC <= NextPC; 
-          if (MemWrite) DMemory[ALUOut>>2] <= RD2;
+            PC <= NextPC; 
+            if (MemWrite) DMemory[ALUOut>>1] <= RD2;
         end 
 endmodule 
 
