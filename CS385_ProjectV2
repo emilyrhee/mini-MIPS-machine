@@ -177,30 +177,23 @@ module sexdecuplexmux2x1 (I0,I1,Sel,Out);
     wire sel_invert;
     
     not g1(sel_invert,Sel);
-    genvar i;
-    generate
-    //iterates through each bit of inputs and outputs
-        for(i=0;i<16;i=i+1) begin:mux_loop
-           mux2x1 mux0(I0[i],I1[i],Sel,Out[i]);
-        end
-    endgenerate
     
-    // mux2x1 mux0(I0[0],I1[0],Sel,Out[0]),
-    //       mux1(I0[1],I1[1],Sel,Out[1]),
-    //       mux2(I0[2],I1[2],Sel,Out[2]),
-    //       mux3(I0[3],I1[3],Sel,Out[3]),
-    //       mux4(I0[4],I1[4],Sel,Out[4]),
-    //       mux5(I0[5],I1[5],Sel,Out[5]),
-    //       mux6(I0[6],I1[6],Sel,Out[6]),
-    //       mux7(I0[7],I1[7],Sel,Out[7]),
-    //       mux8(I0[8],I1[8],Sel,Out[8]),
-    //       mux9(I0[9],I1[9],Sel,Out[9]),
-    //       mux10(I0[10],I1[10],Sel,Out[10]),
-    //       mux11(I0[11],I1[11],Sel,Out[11]),
-    //       mux12(I0[12],I1[12],Sel,Out[12]),
-    //       mux13(I0[13],I1[13],Sel,Out[13]),
-    //       mux14(I0[14],I1[14],Sel,Out[14]),
-    //       mux15(I0[15],I1[15],Sel,Out[15]);
+    mux2x1 mux0(I0[0],I1[0],Sel,Out[0]),
+          mux1(I0[1],I1[1],Sel,Out[1]),
+          mux2(I0[2],I1[2],Sel,Out[2]),
+          mux3(I0[3],I1[3],Sel,Out[3]),
+          mux4(I0[4],I1[4],Sel,Out[4]),
+          mux5(I0[5],I1[5],Sel,Out[5]),
+          mux6(I0[6],I1[6],Sel,Out[6]),
+          mux7(I0[7],I1[7],Sel,Out[7]),
+          mux8(I0[8],I1[8],Sel,Out[8]),
+          mux9(I0[9],I1[9],Sel,Out[9]),
+          mux10(I0[10],I1[10],Sel,Out[10]),
+          mux11(I0[11],I1[11],Sel,Out[11]),
+          mux12(I0[12],I1[12],Sel,Out[12]),
+          mux13(I0[13],I1[13],Sel,Out[13]),
+          mux14(I0[14],I1[14],Sel,Out[14]),
+          mux15(I0[15],I1[15],Sel,Out[15]);
 endmodule 
 
 //Control bit Zero determines if Beq or Bne selected (Beq selected if Zero is true,Bne selected if Zero false)
@@ -214,29 +207,7 @@ module branchmux(Bne,Beq,Zero,Target,PCplus4,NextPC);
     wire Out;
     
     mux2x1 branch(Bne,Beq,Zero,Out);
-  genvar i;
-    generate
-        for(i=0;i<16;i=i+1) begin:mux_loop
-            mux2x1 nextpc0(PCplus4[i],Target[i],Out,NextPC[i]);
-        end
-    endgenerate
-  
-    // mux2x1 nextpc0(PCplus4[i],Target[i],Out,NextPC[i]),
-        //   nextpc1(PCplus4[1],Target[1],Out,NextPC[1]),
-        //   nextpc2(PCplus4[2],Target[2],Out,NextPC[2]),
-        //   nextpc3(PCplus4[3],Target[3],Out,NextPC[3]),
-        //   nextpc4(PCplus4[4],Target[4],Out,NextPC[4]),
-        //   nextpc5(PCplus4[5],Target[5],Out,NextPC[5]),
-        //   nextpc6(PCplus4[6],Target[6],Out,NextPC[6]),
-        //   nextpc7(PCplus4[7],Target[7],Out,NextPC[7]),
-        //   nextpc8(PCplus4[8],Target[8],Out,NextPC[8]),
-        //   nextpc9(PCplus4[9],Target[9],Out,NextPC[9]),
-        //   nextpc10(PCplus4[10],Target[10],Out,NextPC[10]),
-        //   nextpc11(PCplus4[11],Target[11],Out,NextPC[11]),
-        //   nextpc12(PCplus4[12],Target[12],Out,NextPC[12]),
-        //   nextpc13(PCplus4[13],Target[13],Out,NextPC[13]),
-        //   nextpc14(PCplus4[14],Target[14],Out,NextPC[14]),
-        //   nextpc15(PCplus4[15],Target[15],Out,NextPC[15]);
+    sexdecuplexmux2x1 nextpc(PCplus4,Target,Out,NextPC);
 endmodule
 
 module CPU (clock,WD,IR,PC);
@@ -252,6 +223,7 @@ module CPU (clock,WD,IR,PC);
     IMemory[1] = 16'b1000_00_10_00000010;  // lw $t2, 4($0)
     IMemory[2] = 16'b0110_01_10_11_000000;  // slt $t3, $t1, $t2
     IMemory[3] = 16'b1010_11_00_00000010;  // beq $t3, $0, IMemory[6] 
+    //IMemory[3] = 16'b1011_11_00_00000010;  // bne $t3, $0, IMemory[6]
     IMemory[4] = 16'b1001_00_01_00000010;  // sw $t1, 4($0) 
     IMemory[5] = 16'b1001_00_10_00000000;  // sw $t2, 0($0) 
     IMemory[6] = 16'b1000_00_01_00000000;  // lw $t1, 0($0) 
@@ -310,4 +282,4 @@ module test ();
     clock = 1; 
     #20 $finish; 
     end 
-endmodule 
+endmodule
