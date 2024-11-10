@@ -64,21 +64,21 @@ module ALU1 (a,b,ainvert,binvert,op,less,carryin,carryout,result);
     input a,b,less,carryin,ainvert,binvert; 
     input [1:0] op; 
     output carryout,result; 
-    wire nota,notb,c,d,e,f,sum; 
+    wire nota, notb, c, d, e, f, sum; 
     
-    not na(nota,a), 
-        nb(notb,b); 
+    not na(nota, a), 
+        nb(notb, b); 
     
-    mux2x1 muxa(a,nota,ainvert,c), 
-           muxb(b,notb,binvert,d); 
+    mux2x1 muxa(a, nota, ainvert, c), 
+           muxb(b, notb, binvert, d); 
     
     and    ag1(e,c,d); 
     
     or     og1(f,c,d); 
     
-    full_adder fa(c,d,carryin,carryout,sum); 
+    full_adder fa(c, d, carryin, carryout, sum); 
     
-    mux4x1 muxop(e,f,sum,less,op,result); 
+    mux4x1 muxop(e, f, sum, less, op, result); 
 endmodule 
 
 // 1-bit ALU for the most significant bit 
@@ -86,21 +86,21 @@ module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,set);
     input a,b,less,carryin,ainvert,binvert; 
     input [1:0] op; 
     output carryout,result,set; 
-    wire nota,notab,c,f,g; 
+    wire nota, notab, c, f, g; 
     
-    not na(nota,a), 
-        nb(notb,b); 
+    not na(nota, a), 
+        nb(notb, b); 
     
-    mux2x1 muxa(a,nota,ainvert,c), 
-           muxb(b,notb,binvert,d); 
+    mux2x1 muxa(a, nota, ainvert, c), 
+           muxb(b, notb, binvert, d); 
     
     and    ag2(f,c,d); 
     
     or     og2(g,c,d); 
     
-    full_adder fa(c,d,carryin,carryout,set); 
+    full_adder fa(c, d, carryin, carryout, set); 
     
-    mux4x1 muxop(f,g,set,less,op,result); 
+    mux4x1 muxop(f, g, set, less, op, result); 
 endmodule 
 
 // 16-bit ALU from combining 16 1-bit ALUs. 
@@ -131,26 +131,25 @@ module alu (op,a,b,ALUout,zero);
     nor nor1(zero, ALUout[0],ALUout[1],ALUout[2],ALUout[3]); 
 endmodule 
 
-module MainControl (Op,Control); 
-  input [3:0] Op;
-  output reg [10:0] Control;
-// RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Beq,bne,aluctl
-  always @(Op) case (Op)
-    4'b0000: Control <= 11'b10010_0_0_0010; // ADD
-    4'b0001: Control <= 11'b10010_0_0_0110; // SUB
-    4'b0010: Control <= 11'b10010_0_0_0000; // AND
-    4'b0011: Control <= 11'b10010_0_0_0001; // OR
-    4'b0100: Control <= 11'b10010_0_0_1100; // NOR
-    4'b0101: Control <= 11'b10010_0_0_1101; // NAND
-    4'b0110: Control <= 11'b10010_0_0_0111; // SLT
-    4'b0111: Control <= 11'b01010_0_0_0010; // ADDI
-    4'b1000: Control <= 11'b01110_0_0_0010; // LW    
-    4'b1001: Control <= 11'b01001_0_0_0010; // SW    
-    4'b1010: Control <= 11'b00000_1_0_0110; // BEQ   
-    4'b1011: Control <= 11'b00000_0_1_0110; // BNE
-  endcase
-endmodule
-
+// Decodes instruction opcode and generates control signals. 
+module MainControl (Op,Control);  
+    input [3:0] Op; 
+    output reg [6:0] Control; 
+    
+    // Control bits: RegDst,ALUSrc,RegWrite,ALUctl 
+    
+    always @(Op) case (Op) 
+    
+    4'b0000: Control <= 7'b1_0_1_0010; //ADD 
+    4'b0001: Control <= 7'b1_0_1_0110; //SUB 
+    4'b0010: Control <= 7'b1_0_1_0000; //AND 
+    4'b0011: Control <= 7'b1_0_1_0001; //OR 
+    4'b0100: Control <= 7'b1_0_1_1100; //NOR 
+    4'b0101: Control <= 7'b1_0_1_1101; //NAND 
+    4'b0110: Control <= 7'b1_0_1_0111; //SLT 
+    4'b0111: Control <= 7'b0_1_1_0010; // ADDI 
+    endcase 
+endmodule 
 
 // Selects between two 2-bit inputs (I0 and I1) based on control signal Sel. 
 module doublemux2x1 (I0,I1,Sel,Out); 
@@ -177,161 +176,96 @@ module sexdecuplexmux2x1 (I0,I1,Sel,Out);
     wire sel_invert;
     
     not g1(sel_invert,Sel);
-    genvar i;
-    generate
-    //iterates through each bit of inputs and outputs
-        for(i=0;i<16;i=i+1) begin:mux_loop
-           mux2x1 mux0(I0[i],I1[i],Sel,Out[i]);
-        end
-    endgenerate
     
-    // mux2x1 mux0(I0[0],I1[0],Sel,Out[0]),
-    //       mux1(I0[1],I1[1],Sel,Out[1]),
-    //       mux2(I0[2],I1[2],Sel,Out[2]),
-    //       mux3(I0[3],I1[3],Sel,Out[3]),
-    //       mux4(I0[4],I1[4],Sel,Out[4]),
-    //       mux5(I0[5],I1[5],Sel,Out[5]),
-    //       mux6(I0[6],I1[6],Sel,Out[6]),
-    //       mux7(I0[7],I1[7],Sel,Out[7]),
-    //       mux8(I0[8],I1[8],Sel,Out[8]),
-    //       mux9(I0[9],I1[9],Sel,Out[9]),
-    //       mux10(I0[10],I1[10],Sel,Out[10]),
-    //       mux11(I0[11],I1[11],Sel,Out[11]),
-    //       mux12(I0[12],I1[12],Sel,Out[12]),
-    //       mux13(I0[13],I1[13],Sel,Out[13]),
-    //       mux14(I0[14],I1[14],Sel,Out[14]),
-    //       mux15(I0[15],I1[15],Sel,Out[15]);
+    mux2x1 mux0(I0[0],I1[0],Sel,Out[0]),
+           mux1(I0[1],I1[1],Sel,Out[1]),
+           mux2(I0[2],I1[2],Sel,Out[2]),
+           mux3(I0[3],I1[3],Sel,Out[3]),
+           mux4(I0[4],I1[4],Sel,Out[4]),
+           mux5(I0[5],I1[5],Sel,Out[5]),
+           mux6(I0[6],I1[6],Sel,Out[6]),
+           mux7(I0[7],I1[7],Sel,Out[7]),
+           mux8(I0[8],I1[8],Sel,Out[8]),
+           mux9(I0[9],I1[9],Sel,Out[9]),
+           mux10(I0[10],I1[10],Sel,Out[10]),
+           mux11(I0[11],I1[11],Sel,Out[11]),
+           mux12(I0[12],I1[12],Sel,Out[12]),
+           mux13(I0[13],I1[13],Sel,Out[13]),
+           mux14(I0[14],I1[14],Sel,Out[14]),
+           mux15(I0[15],I1[15],Sel,Out[15]);
 endmodule 
 
-//Control bit Zero determines if Beq or Bne selected (Beq selected if Zero is true,Bne selected if Zero false)
-//Beq is branch if inputs equal, Bne is branch if inputs aren't equal
-//If it is true program counter PNextPC set to branch to Target address
-//if false PC increments by 4and moves to next instruction
-module branchmux(Bne,Beq,Zero,Target,PCplus4,NextPC);
-    input Beq,Bne,Zero;
-    input [15:0] Target,PCplus4;
-    output [15:0] NextPC;
-    wire Out;
-    
-    mux2x1 branch(Bne,Beq,Zero,Out);
-  genvar i;
-    generate
-        for(i=0;i<16;i=i+1) begin:mux_loop
-            mux2x1 nextpc0(PCplus4[i],Target[i],Out,NextPC[i]);
-        end
-    endgenerate
-  
-    // mux2x1 nextpc0(PCplus4[i],Target[i],Out,NextPC[i]),
-        //   nextpc1(PCplus4[1],Target[1],Out,NextPC[1]),
-        //   nextpc2(PCplus4[2],Target[2],Out,NextPC[2]),
-        //   nextpc3(PCplus4[3],Target[3],Out,NextPC[3]),
-        //   nextpc4(PCplus4[4],Target[4],Out,NextPC[4]),
-        //   nextpc5(PCplus4[5],Target[5],Out,NextPC[5]),
-        //   nextpc6(PCplus4[6],Target[6],Out,NextPC[6]),
-        //   nextpc7(PCplus4[7],Target[7],Out,NextPC[7]),
-        //   nextpc8(PCplus4[8],Target[8],Out,NextPC[8]),
-        //   nextpc9(PCplus4[9],Target[9],Out,NextPC[9]),
-        //   nextpc10(PCplus4[10],Target[10],Out,NextPC[10]),
-        //   nextpc11(PCplus4[11],Target[11],Out,NextPC[11]),
-        //   nextpc12(PCplus4[12],Target[12],Out,NextPC[12]),
-        //   nextpc13(PCplus4[13],Target[13],Out,NextPC[13]),
-        //   nextpc14(PCplus4[14],Target[14],Out,NextPC[14]),
-        //   nextpc15(PCplus4[15],Target[15],Out,NextPC[15]);
-endmodule
-
-module CPU (clock,WD,IR,PC);
-  input clock;
-  output [15:0] WD,IR,PC;
-  reg[15:0] PC, IMemory[0:1023], DMemory[0:1023];
-  wire [15:0] IR,SignExtend,NextPC,RD2,A,B,ALUOut,PCplus4,Target;
-  wire [1:0] WR;
-  wire [3:0] ALUctl;
-  initial begin 
-// Test program with nop's - no hazards
-    IMemory[0] = 16'b0111_00_01_00001111;   // addi $t1, $0, 15 ($t1=15) 
-    IMemory[1] = 16'b0111_00_10_00000111;   // addi $t2, $0, 7 ($t2=7) 
-    IMemory[2] = 16'b0000000000000000;      // nop
-    IMemory[3] = 16'b0010_01_10_11_000000;  // and $t3, $t1, $t2 ($t3=7)
-    IMemory[4] = 16'b0000000000000000;      // nop
-    IMemory[5] = 16'b0001_01_11_10_000000;  // sub $t2, $t1, $t3 ($t2=8) 
-    IMemory[6] = 16'b0000000000000000;      // nop
-    IMemory[7] = 16'b0011_10_11_10_000000;  // or $t2, $t2, $t3 ($t2=15) 
-    IMemory[8] = 16'b0000000000000000;      // nop
-    IMemory[9] = 16'b0000_10_11_11_000000;  // add $t3, $t2, $t3 ($t3=22) 
-    IMemory[10] = 16'b0000000000000000;     // nop
-    IMemory[11] = 16'b0100_10_11_01_000000; // nor $t1, $t2, $t3 ($t1=-32) 
-    IMemory[12] = 16'b0110_11_10_01_000000; // slt $t1, $t3, $t2 ($t1=0) 
-    IMemory[13] = 16'b0110_10_11_01_000000; // slt $t1, $t2, $t3 ($t1=1)
-  end
-  
-  initial PC = 0;
-  assign IR = IMemory[PC>>1];
-  assign SignExtend = {{8{IR[7]}},IR[7:0]}; // sign extension
-  reg_file rf (IR[11:10],IR[9:8],WR,WD,RegWrite,A,RD2,clock);
-  alu fetch (4'b0010,PC,16'b10,PCplus4,Unused1),
-      ex (ALUctl, A, B, ALUOut, Zero),
-      branch (4'b0010,SignExtend<<1,PCplus4,Target,Unused2);
-  MainControl MainCtr (IR[15:12],{RegDst,ALUSrc,MemtoReg,RegWrite,MemWrite,Beq,Bne,ALUctl}); 
-  
-  //RegDst mux If RegDst(control bit) is 1 Instruction register IR[7:6] is chosen
-  //If RegDst is 0 IR[9:8] is selected
-  //Selected bit value assigned to Write Register WR
-  mux2x1 regdst(IR[9],IR[7],RegDst,WR[1]),
-         regdst2(IR[8],IR[6],RegDst,WR[0]);
-         
-    //DMemory data memory with address ALUOut>>1 which is ALU output shifted by dividing by 2
-    //If MemtoReg(control bit) is true data taken from memory (DMemory) and written to Write Data WD
-    //If MemtoReg false data is result of ALU ALUOut and written to WD
-  sexdecuplexmux2x1 memtoreg(ALUOut,DMemory[ALUOut>>1],MemtoReg,WD),
-                    alusrc(RD2,SignExtend,ALUSrc,B);
-                    //ALUsrc is the control signal 
-                    //If ALUsrc is true the operand to the ALU will be immediate value from sign extend
-                    //If ALUsrc false the second operand will come from REad Data 2 register RD2
-                    //B is the output of the mux whixh is the second operand for the ALU
-                   
-  branchmux nextpcout(Bne,Beq,Zero,Target,PCplus4,NextPC);
-  always @(negedge clock) begin
-  
-//   $display("%b %b %b",PC,PCplus4,IR);
-    PC <= NextPC;
-    if (MemWrite) DMemory[ALUOut>>1] <= RD2;
-  end
+// Implements single-cycle CPU that fetches instructions, executes them, and updates the PC. 
+module CPU (clock,PC,ALUOut,IR); 
+    input clock;
+    output [15:0] ALUOut,IR,PC; 
+    reg[15:0] PC; 
+    reg[15:0] IMemory[0:1023]; 
+    wire [15:0] IR,NextPC,A,B,ALUOut,RD2,SignExtend; 
+    wire [3:0] ALUctl; 
+    wire [1:0] WR;  
+        // Test Program 
+        initial begin 
+            IMemory[0] = 16'b0111_00_01_00001111;   // addi $t1, $0, 15 ($t1=15) 
+            IMemory[1] = 16'b0111_00_10_00000111;   // addi $t2, $0, 7 ($t2=7) 
+            IMemory[2] = 16'b0000000000000000;      // nop
+            IMemory[3] = 16'b0010_01_10_11_000000;  // and $t3, $t1, $t2 ($t3=7)
+            IMemory[4] = 16'b0000000000000000;      // nop
+            IMemory[5] = 16'b0001_01_11_10_000000;  // sub $t2, $t1, $t3 ($t2=8) 
+            IMemory[6] = 16'b0000000000000000;      // nop
+            IMemory[7] = 16'b0011_10_11_10_000000;  // or $t2, $t2, $t3 ($t2=15) 
+            IMemory[8] = 16'b0000000000000000;      // nop
+            IMemory[9] = 16'b0000_10_11_11_000000;  // add $t3, $t2, $t3 ($t3=22) 
+            IMemory[10] = 16'b0000000000000000;     // nop
+            IMemory[11] = 16'b0100_10_11_01_000000; // nor $t1, $t2, $t3 ($t1=-32) 
+            IMemory[12] = 16'b0110_11_10_01_000000; // slt $t1, $t3, $t2 ($t1=0) 
+            IMemory[13] = 16'b0110_10_11_01_000000; // slt $t1, $t2, $t3 ($t1=1)          
+        end 
+        
+        initial PC = 0; 
+        assign IR = IMemory[PC>>1]; 
+        doublemux2x1 muxwr(IR[9:8], IR[7:6], RegDst, WR); 
+        sexdecuplexmux2x1 muxb(RD2, SignExtend, ALUSrc, B); 
+        assign SignExtend = {{8{IR[7]}},IR[7:0]}; // sign extension unit 
+        reg_file rf (IR[11:10],IR[9:8],WR,ALUOut,RegWrite,A,RD2,clock); 
+        alu fetch (4'b0010,PC,16'b10,NextPC,Unused), 
+            ex (ALUctl, A, B, ALUOut, Zero); 
+        MainControl MainCtr (IR[15:12],{RegDst,ALUSrc,RegWrite,ALUctl});  
+        always @(negedge clock) begin  
+        PC <= NextPC; 
+        end 
 endmodule 
 
 // Test module 
 module test (); 
     reg clock; 
     wire signed [15:0] WD,IR,PC; 
-    CPU test_cpu(clock,WD,IR,PC); 
+    CPU test_cpu(clock,PC,WD,IR); 
     always #1 clock = ~clock; 
     initial begin 
     $display ("Clock PC IR WD"); 
     $monitor ("%b %2d %b %3d (%b)",clock,PC,IR,WD,WD); 
     clock = 1; 
-    #20 $finish; 
+    #16 $finish; 
     end 
 endmodule 
-
-// Clock PC IR WD
-// 1  0 1000000100000000   5 (0000000000000101)
-// 0  2 1000001000000010   7 (0000000000000111)
-// 1  2 1000001000000010   7 (0000000000000111)
-// 0  4 0110011011000000   1 (0000000000000001)
-// 1  4 0110011011000000   1 (0000000000000001)
-// 0  6 1010110000000010   1 (0000000000000001)
-// 1  6 1010110000000010   1 (0000000000000001)
-// 0  8 1001000100000010   2 (0000000000000010)
-// 1  8 1001000100000010   2 (0000000000000010)
-// 0 10 1001001000000000   0 (0000000000000000)
-// 1 10 1001001000000000   0 (0000000000000000)
-// 0 12 1000000100000000   7 (0000000000000111)
-// 1 12 1000000100000000   7 (0000000000000111)
-// 0 14 1000001000000010   5 (0000000000000101)
-// 1 14 1000001000000010   5 (0000000000000101)
-// 0 16 0100101010000000  -6 (1111111111111010)
-// 1 16 0100101010000000  -6 (1111111111111010)
-// 0 18 0111101000000001  -5 (1111111111111011)
-// 1 18 0111101000000001  -5 (1111111111111011)
-// 0 20 0000011011000000   2 (0000000000000010)
-// projectv3.vl:311: $finish called at 20 (1s)
-// 1 20 0000011011000000   2 (0000000000000010)
+/* Output
+Clock PC   IR                                 WD
+1      0   00100000000010010000000000001111   15 (00000000000000000000000000001111)
+0      4   00100000000010100000000000000111    7 (00000000000000000000000000000111)
+1      4   00100000000010100000000000000111    7 (00000000000000000000000000000111)
+0      8   00000001001010100101100000100100    7 (00000000000000000000000000000111)
+1      8   00000001001010100101100000100100    7 (00000000000000000000000000000111)
+0     12   00000001001010110101000000100010    8 (00000000000000000000000000001000)
+1     12   00000001001010110101000000100010    8 (00000000000000000000000000001000)
+0     16   00000001010010110101000000100101   15 (00000000000000000000000000001111)
+1     16   00000001010010110101000000100101   15 (00000000000000000000000000001111)
+0     20   00000001010010110101100000100000   22 (00000000000000000000000000010110)
+1     20   00000001010010110101100000100000   22 (00000000000000000000000000010110)
+0     24   00000001010010110100100000100111  -32 (11111111111111111111111111100000)
+1     24   00000001010010110100100000100111  -32 (11111111111111111111111111100000)
+0     28   00000001011010100100100000101010    0 (00000000000000000000000000000000)
+1     28   00000001011010100100100000101010    0 (00000000000000000000000000000000)
+0     32   00000001010010110100100000101010    1 (00000000000000000000000000000001)
+1     32   00000001010010110100100000101010    1 (00000000000000000000000000000001)
+*/
