@@ -68,16 +68,11 @@ module ALU1 (a,b,ainvert,binvert,op,less,carryin,carryout,result);
     
     not na(nota, a), 
         nb(notb, b); 
-    
     mux2x1 muxa(a, nota, ainvert, c), 
            muxb(b, notb, binvert, d); 
-    
     and    ag1(e,c,d); 
-    
     or     og1(f,c,d); 
-    
     full_adder fa(c, d, carryin, carryout, sum); 
-    
     mux4x1 muxop(e, f, sum, less, op, result); 
 endmodule 
 
@@ -90,16 +85,11 @@ module ALUmsb (a,b,ainvert,binvert,op,less,carryin,carryout,result,set);
     
     not na(nota, a), 
         nb(notb, b); 
-    
     mux2x1 muxa(a, nota, ainvert, c), 
            muxb(b, notb, binvert, d); 
-    
     and    ag2(f,c,d); 
-    
     or     og2(g,c,d); 
-    
     full_adder fa(c, d, carryin, carryout, set); 
-    
     mux4x1 muxop(f, g, set, less, op, result); 
 endmodule 
 
@@ -137,17 +127,15 @@ module MainControl (Op,Control);
     output reg [6:0] Control; 
     
     // Control bits: RegDst,ALUSrc,RegWrite,ALUctl 
-    
     always @(Op) case (Op) 
-    
-    4'b0000: Control <= 7'b1_0_1_0010; //ADD 
-    4'b0001: Control <= 7'b1_0_1_0110; //SUB 
-    4'b0010: Control <= 7'b1_0_1_0000; //AND 
-    4'b0011: Control <= 7'b1_0_1_0001; //OR 
-    4'b0100: Control <= 7'b1_0_1_1100; //NOR 
-    4'b0101: Control <= 7'b1_0_1_1101; //NAND 
-    4'b0110: Control <= 7'b1_0_1_0111; //SLT 
-    4'b0111: Control <= 7'b0_1_1_0010; // ADDI 
+        4'b0000: Control <= 7'b1_0_1_0010; //ADD 
+        4'b0001: Control <= 7'b1_0_1_0110; //SUB 
+        4'b0010: Control <= 7'b1_0_1_0000; //AND 
+        4'b0011: Control <= 7'b1_0_1_0001; //OR 
+        4'b0100: Control <= 7'b1_0_1_1100; //NOR 
+        4'b0101: Control <= 7'b1_0_1_1101; //NAND 
+        4'b0110: Control <= 7'b1_0_1_0111; //SLT 
+        4'b0111: Control <= 7'b0_1_1_0010; // ADDI 
     endcase 
 endmodule 
 
@@ -196,57 +184,69 @@ module sexdecuplexmux2x1 (I0,I1,Sel,Out);
 endmodule 
 
 // Implements single-cycle CPU that fetches instructions, executes them, and updates the PC. 
-module CPU (clock,PC,ALUOut,IR); 
+module CPU (clock,PC,IFID_IR,IDEX_IR,WD); 
     input clock;
-    output [15:0] ALUOut,IR,PC; 
-    reg[15:0] PC; 
-    reg[15:0] IMemory[0:1023]; 
-    wire [15:0] IR,NextPC,A,B,ALUOut,RD2,SignExtend; 
-    wire [3:0] ALUctl; 
-    wire [1:0] WR;  
+    output [15:0] PC,IFID_IR,IDEX_IR,WD;
         // Test Program 
-        initial begin 
-            IMemory[0] = 16'b0111_00_01_00001111;   // addi $t1, $0, 15 ($t1=15) 
-            IMemory[1] = 16'b0111_00_10_00000111;   // addi $t2, $0, 7 ($t2=7) 
-            IMemory[2] = 16'b0000000000000000;      // nop
-            IMemory[3] = 16'b0010_01_10_11_000000;  // and $t3, $t1, $t2 ($t3=7)
-            IMemory[4] = 16'b0000000000000000;      // nop
-            IMemory[5] = 16'b0001_01_11_10_000000;  // sub $t2, $t1, $t3 ($t2=8) 
-            IMemory[6] = 16'b0000000000000000;      // nop
-            IMemory[7] = 16'b0011_10_11_10_000000;  // or $t2, $t2, $t3 ($t2=15) 
-            IMemory[8] = 16'b0000000000000000;      // nop
-            IMemory[9] = 16'b0000_10_11_11_000000;  // add $t3, $t2, $t3 ($t3=22) 
-            IMemory[10] = 16'b0000000000000000;     // nop
-            IMemory[11] = 16'b0100_10_11_01_000000; // nor $t1, $t2, $t3 ($t1=-32) 
-            IMemory[12] = 16'b0110_11_10_01_000000; // slt $t1, $t3, $t2 ($t1=0) 
-            IMemory[13] = 16'b0110_10_11_01_000000; // slt $t1, $t2, $t3 ($t1=1)          
-        end 
-        
-        initial PC = 0; 
-        assign IR = IMemory[PC>>1]; 
-        doublemux2x1 muxwr(IR[9:8], IR[7:6], RegDst, WR); 
-        sexdecuplexmux2x1 muxb(RD2, SignExtend, ALUSrc, B); 
-        assign SignExtend = {{8{IR[7]}},IR[7:0]}; // sign extension unit 
-        reg_file rf (IR[11:10],IR[9:8],WR,ALUOut,RegWrite,A,RD2,clock); 
-        alu fetch (4'b0010,PC,16'b10,NextPC,Unused), 
-            ex (ALUctl, A, B, ALUOut, Zero); 
-        MainControl MainCtr (IR[15:12],{RegDst,ALUSrc,RegWrite,ALUctl});  
-        always @(negedge clock) begin  
-        PC <= NextPC; 
-        end 
+    initial begin 
+        IMemory[0] = 16'b0111_00_01_00001111;   // addi $t1, $0, 15 ($t1=15) 
+        IMemory[1] = 16'b0111_00_10_00000111;   // addi $t2, $0, 7 ($t2=7) 
+        IMemory[2] = 16'b0000000000000000;      // nop
+        IMemory[3] = 16'b0010_01_10_11_000000;  // and $t3, $t1, $t2 ($t3=7)
+        IMemory[4] = 16'b0000000000000000;      // nop
+        IMemory[5] = 16'b0001_01_11_10_000000;  // sub $t2, $t1, $t3 ($t2=8) 
+        IMemory[6] = 16'b0000000000000000;      // nop
+        IMemory[7] = 16'b0011_10_11_10_000000;  // or $t2, $t2, $t3 ($t2=15) 
+        IMemory[8] = 16'b0000000000000000;      // nop
+        IMemory[9] = 16'b0000_10_11_11_000000;  // add $t3, $t2, $t3 ($t3=22) 
+        IMemory[10] = 16'b0000000000000000;     // nop
+        IMemory[11] = 16'b0100_10_11_01_000000; // nor $t1, $t2, $t3 ($t1=-32) 
+        IMemory[12] = 16'b0110_11_10_01_000000; // slt $t1, $t3, $t2 ($t1=0) 
+        IMemory[13] = 16'b0110_10_11_01_000000; // slt $t1, $t2, $t3 ($t1=1)          
+    end 
+
+    // Pipeline stages
+    //=== IF STAGE ===
+    wire [15:0] NextPC;
+    reg[15:0] PC, IMemory[0:1023];
+    //--------------------------------
+    reg[15:0] IFID_IR;
+    //--------------------------------
+    alu fetch (4'b0010,PC,16'b10,NextPC,Unused);
+
+    //=== ID STAGE ===
+    wire [6:0] Control;
+    wire [15:0] RD1,RD2,SignExtend,WD;
+    wire [15:0] FWD_RD1,FWD_RD2; // Outputs of the forwarding muxes
+    reg [15:0] IDEX_IR; // For monitoring the pipeline
+    reg IDEX_RegWrite,IDEX_ALUSrc,IDEX_RegDst;
+    reg [15:0] IDEX_RD1,IDEX_RD2,IDEX_SignExt;
+    reg [1:0]  IDEX_rt,IDEX_rd;
+    wire [1:0] WR;
+    reg_file rf (IFID_IR[11:10],IFID_IR[9:8],WR,WD,IDEX_RegWrite,RD1,RD2,clock);
+    MainControl MainCtr (IFID_IR[15:12],Control); 
+    assign SignExtend = {{8{IFID_IR[7]}},IFID_IR[7:0]};
+
+    //=== EXE STAGE ===
+    wire [15:0] B,ALUOut;
+    wire [3:0] ALUctl;
+    alu ex (ALUctl, IDEX_RD1, B, ALUOut, Zero);
+    sexdecuplexmux2x1 muxb(IDEX_RD2, IDEX_SignExt, IDEX_ALUSrc, B); 
+    doublemux2x1 muxwr(IDEX_rt, IDEX_rd, IDEX_RegDst, WR); 
+    assign WD = ALUOut;
 endmodule 
 
 // Test module 
 module test (); 
     reg clock; 
-    wire signed [15:0] WD,IR,PC; 
-    CPU test_cpu(clock,PC,WD,IR); 
+    wire signed [15:0] PC,IFID_IR,IDEX_IR,WD; 
+    CPU test_cpu(clock,PC,IFID_IR,IDEX_IR,WD); 
     always #1 clock = ~clock; 
-    initial begin 
-    $display ("Clock PC IR WD"); 
-    $monitor ("%b %2d %b %3d (%b)",clock,PC,IR,WD,WD); 
+    initial begin
+    $display ("PC IFID_IR         IDEX_IR           WD");
+    $monitor ("%2d %b %b %3d", PC,IFID_IR,IDEX_IR,WD); 
     clock = 1; 
-    #16 $finish; 
+    #29 $finish; 
     end 
 endmodule 
 /* Output
