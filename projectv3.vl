@@ -128,7 +128,9 @@ module alu (op,a,b,ALUout,zero);
     
     ALUmsb alu15 (a[15],b[15],op[3],op[2],op[1:0],1'b0,c14, c15,ALUout[15],set); 
     
-    nor nor1(zero, ALUout[0],ALUout[1],ALUout[2],ALUout[3]); 
+    nor nor1(zero, ALUout[0], ALUout[1], ALUout[2], ALUout[3], ALUout[4],
+             ALUout[5], ALUout[6], ALUout[7], ALUout[8], ALUout[9], ALUout[10],
+             ALUout[11], ALUout[12], ALUout[13], ALUout[14], ALUout[15]);
 endmodule 
 
 module MainControl (Op,Control);  
@@ -304,8 +306,8 @@ module test ();
   CPU test_cpu(clock,PC,IFID_IR,IDEX_IR,WD);
   always #1 clock = ~clock;
   initial begin
-    $display ("PC  IFID_IR   IDEX_IR   WD");
-    $monitor ("%2d  %h  %h  %2d",PC,IFID_IR,IDEX_IR,WD);
+    $display ("PC\tIFID_IR\tIDEX_IR\tWD");
+    $monitor ("%2d\t%h\t%h\t%2d",PC,IFID_IR,IDEX_IR,WD);
     clock = 1;
     #29 $finish;
   end
