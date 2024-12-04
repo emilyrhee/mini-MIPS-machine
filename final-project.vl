@@ -195,47 +195,77 @@ module MainControl (Op,Control);
     endcase
 endmodule
 
+module branchmux(Bne,Beq,Zero,Target,PCplus4,NextPC);
+    input Beq,Bne,Zero;
+    input [15:0] Target,PCplus4;
+    output [15:0] NextPC;
+    wire Out;
+    
+    mux2x1 branch(Bne,Beq,Zero,Out);
+    sexdecuplexmux2x1 nextpc(PCplus4,Target,Out,NextPC);
+endmodule
+
 module CPU (clock,PC,IFID_IR,IDEX_IR,EXMEM_IR,MEMWB_IR,WD);
   input clock;
   output [15:0] PC,IFID_IR,IDEX_IR,EXMEM_IR,MEMWB_IR,WD;
 
+//   initial begin 
+// // Program: swap memory cells (if needed) and compute absolute value |5-7|=2
+//   IMemory[0] = 16'b1000_00_01_00000000;  // lw $t1, 0($0) 
+//   IMemory[1] = 16'b1000_00_10_00000010;  // lw $t2, 4($0)
+//   IMemory[2] = 16'b0000000000000000;     // nop
+//   IMemory[3] = 16'b0000000000000000;     // nop
+//   IMemory[4] = 16'b0000000000000000;     // nop
+//   IMemory[5] = 16'b0110_01_10_11_000000; // slt $t3, $t1, $t2
+//   IMemory[6] = 16'b0000000000000000;     // nop
+//   IMemory[7] = 16'b0000000000000000;     // nop
+//   IMemory[8] = 16'b0000000000000000;    // nop
+//   IMemory[9] = 16'b1011_11_00_00000101;  // bne $t3, $0, IMemory[6]
+//   //IMemory[9] = 16'b1010_11_00_00000101;  // beq $t3, $0, IMemory[6]
+//   IMemory[10]= 16'b0000000000000000;    // nop
+//   IMemory[11]= 16'b0000000000000000;    // nop
+//   IMemory[12]= 16'b0000000000000000;    // nop
+//   IMemory[13]= 16'b1001_00_01_00000010;  // sw $t1, 4($0) 
+//   IMemory[14]= 16'b1001_00_10_00000000;  // sw $t2, 0($0)
+//   IMemory[15]= 16'b0000000000000000;    // nop
+//   IMemory[16]= 16'b0000000000000000;     // nop
+//   IMemory[17]= 16'b0000000000000000;     // nop
+//   IMemory[18]= 16'b1000_00_01_00000000;  // lw $t1, 0($0) 
+//   IMemory[19]= 16'b1000_00_10_00000010;  // lw $t2, 4($0)
+//   IMemory[20]= 16'b0000000000000000;     // nop
+//   IMemory[21]= 16'b0000000000000000;     // nop
+//   IMemory[22]= 16'b0000000000000000;     // nop
+//   IMemory[23]= 16'b0100_10_10_10_000000; // nor $t2, $t2, $t2 (sub $3, $1, $2 in two's complement)
+//   IMemory[24]= 16'b0000000000000000;     // nop
+//   IMemory[25]= 16'b0000000000000000;     // nop
+//   IMemory[26]= 16'b0000000000000000;     // nop
+//   IMemory[27]= 16'b0111_10_10_00000001;  // addi $t2, $t2, 1 
+//   IMemory[28]= 16'b0000000000000000;     // nop
+//   IMemory[29]= 16'b0000000000000000;     // nop
+//   IMemory[30]= 16'b0000000000000000;     // nop
+//   IMemory[31]= 16'b0000_01_10_11_000000; // add $t3, $t1, $t2 
+// // Data
+//   DMemory[0] = 16'd5; // switch the cells and see how the simulation output changes
+//   DMemory[1] = 16'd7; // (beq is taken if DMemory[0]=7; DMemory[1]=5, not taken otherwise)
+//   end
+  
   initial begin 
 // Program: swap memory cells (if needed) and compute absolute value |5-7|=2
-   IMemory[0] = 16'b1000_00_01_00000000;  // lw $t1, 0($0) 
-   IMemory[1] = 16'b1000_00_10_00000010;  // lw $t2, 4($0)
-   IMemory[2] = 16'b0000000000000000;     // nop
-   IMemory[3] = 16'b0000000000000000;     // nop
-   IMemory[4] = 16'b0000000000000000;     // nop
-   IMemory[5] = 16'b0110_01_10_11_000000; // slt $t3, $t1, $t2
-   IMemory[6] = 16'b0000000000000000;     // nop
-   IMemory[7] = 16'b0000000000000000;     // nop
-   IMemory[8] = 16'b0000000000000000;    // nop
-   IMemory[9] = 16'b1010_11_00_00000010;  // beq $t3, $0, IMemory[6]
-   IMemory[10]= 16'b0000000000000000;    // nop
-   IMemory[11]= 16'b0000000000000000;    // nop
-   IMemory[12]= 16'b0000000000000000;    // nop
-   IMemory[13]= 16'b1001_00_01_00000010;  // sw $t1, 4($0) 
-   IMemory[14]= 16'b1001_00_10_00000000;  // sw $t2, 0($0)
-   IMemory[15]= 16'b0000000000000000;    // nop
-   IMemory[16]= 16'b0000000000000000;     // nop
-   IMemory[17]= 16'b0000000000000000;     // nop
-   IMemory[18]= 16'b1000_00_01_00000000;  // lw $t1, 0($0) 
-   IMemory[19]= 16'b1000_00_10_00000010;  // lw $t2, 4($0)
-   IMemory[20]= 16'b0000000000000000;     // nop
-   IMemory[21]= 16'b0000000000000000;     // nop
-   IMemory[22]= 16'b0000000000000000;     // nop
-   IMemory[23]= 16'b0100_10_10_10_000000; // nor $t2, $t2, $t2 (sub $3, $1, $2 in two's complement)
-   IMemory[24]= 16'b0000000000000000;     // nop
-   IMemory[25]= 16'b0000000000000000;     // nop
-   IMemory[26]= 16'b0000000000000000;     // nop
-   IMemory[27]= 16'b0111_10_10_00000001;  // addi $t2, $t2, 1 
-   IMemory[28]= 16'b0000000000000000;     // nop
-   IMemory[29]= 16'b0000000000000000;     // nop
-   IMemory[30]= 16'b0000000000000000;     // nop
-   IMemory[31]= 16'b0000_01_10_11_000000; // add $t3, $t1, $t2 
+  IMemory[0] = 16'b1000_00_01_00000000;  // lw $t1, 0($0) 
+  IMemory[1] = 16'b1000_00_10_00000010;  // lw $t2, 4($0)
+  IMemory[5] = 16'b0110_01_10_11_000000; // slt $t3, $t1, $t2
+  IMemory[9] = 16'b1011_11_00_00000101;  // bne $t3, $0, IMemory[6]
+  IMemory[9] = 16'b1010_11_00_00000101;  // beq $t3, $0, IMemory[6]
+  IMemory[13]= 16'b1001_00_01_00000010;  // sw $t1, 4($0) 
+  IMemory[14]= 16'b1001_00_10_00000000;  // sw $t2, 0($0)
+  IMemory[18]= 16'b1000_00_01_00000000;  // lw $t1, 0($0) 
+  IMemory[19]= 16'b1000_00_10_00000010;  // lw $t2, 4($0)
+  IMemory[23]= 16'b0100_10_10_10_000000; // nor $t2, $t2, $t2 (sub $3, $1, $2 in two's complement)
+  IMemory[27]= 16'b0111_10_10_00000001;  // addi $t2, $t2, 1 
+  IMemory[31]= 16'b0000_01_10_11_000000; // add $t3, $t1, $t2 
 // Data
-   DMemory[0] = 16'd5; // switch the cells and see how the simulation output changes
-   DMemory[1] = 16'd7; // (beq is taken if DMemory[0]=7; DMemory[1]=5, not taken otherwise)
+  DMemory[0] = 16'd5; // switch the cells and see how the simulation output changes
+  DMemory[1] = 16'd7; // (beq is taken if DMemory[0]=7; DMemory[1]=5, not taken otherwise)
   end
 
 // Pipeline 
@@ -243,11 +273,11 @@ module CPU (clock,PC,IFID_IR,IDEX_IR,EXMEM_IR,MEMWB_IR,WD);
    wire [15:0] PCplus4, NextPC;
    reg[15:0] PC, IMemory[0:1023], IFID_IR, IFID_PCplus4, EXMEM_Target;
    alu fetch (4'b0010,PC,16'b10,PCplus4,Unused1);
-   sexdecuplexmux2x1 NextPCmux(PCplus4, EXMEM_Target, EXMEM_Branch && EXMEM_Zero, NextPC); // not sure if EXMEM_Branch && EXMEM_Zero is gate-level
+   branchmux NextPCmux( EXMEM_Bne,EXMEM_Beq,EXMEM_Zero,EXMEM_Target,PCplus4,NextPC); // not sure if EXMEM_Branch && EXMEM_Zero is gate-level
 // ID
    wire [10:0] Control;
    reg IDEX_RegWrite,IDEX_MemtoReg,
-       IDEX_Branch,  IDEX_MemWrite,
+       IDEX_Bne,IDEX_Beq,  IDEX_MemWrite,
        IDEX_ALUSrc,  IDEX_RegDst;
    wire [15:0] RD1,RD2,SignExtend, WD;
    reg [15:0] IDEX_PCplus4,IDEX_RD1,IDEX_RD2,IDEX_SignExt,IDEXE_IR;
@@ -260,36 +290,35 @@ module CPU (clock,PC,IFID_IR,IDEX_IR,EXMEM_IR,MEMWB_IR,WD);
    assign SignExtend = {{8{IFID_IR[7]}},IFID_IR[7:0]}; 
 // EXE
    reg EXMEM_RegWrite,EXMEM_MemtoReg,
-       EXMEM_Branch,  EXMEM_MemWrite;
-   wire [31:0] Target;
+       EXMEM_Bne, EXMEM_Beq, EXMEM_MemWrite;
+   wire [15:0] Target;
    reg EXMEM_Zero;
-   reg [31:0] EXMEM_Target,EXMEM_ALUOut,EXMEM_RD2;
-   reg [31:0] EXMEM_IR; // For monitoring the pipeline
+   reg [15:0] EXMEM_ALUOut,EXMEM_RD2;
+   reg [15:0] EXMEM_IR; // For monitoring the pipeline
    reg [4:0] EXMEM_rd;
-   wire [31:0] B,ALUOut;
-   wire [3:0] ALUctl;
-   wire [4:0] WR;
-   alu branch (4'b0010,IDEX_SignExt<<2,IDEX_PCplus4,Target,Unused2);
-   alu ex (ALUctl, IDEX_RD1, B, ALUOut, Zero);
-   ALUControl ALUCtrl(IDEX_ALUOp, IDEX_SignExt[5:0], ALUctl); // ALU control unit
-   assign B  = (IDEX_ALUSrc) ? IDEX_SignExt: IDEX_RD2;        // ALUSrc Mux 
-   assign WR = (IDEX_RegDst) ? IDEX_rd: IDEX_rt;              // RegDst Mux
+   wire [15:0] B,ALUOut;
+   reg [3:0] IDEX_ALUOp;
+   wire [1:0] WR;
+   alu branch (4'b0010,IDEX_SignExt<<1,IDEX_PCplus4,Target,Unused2);
+   alu ex (IDEX_ALUOp, IDEX_RD1, B, ALUOut, Zero);
+   sexdecuplexmux2x1 muxb(IDEX_RD2, IDEX_SignExt, IDEX_ALUSrc, B); 
+   doublemux2x1 muxwr(IDEX_rt, IDEX_rd, IDEX_RegDst, WR); 
 // MEM
    reg MEMWB_MemtoReg;
-   reg [31:0] DMemory[0:1023],MEMWB_MemOut,MEMWB_ALUOut;
-   reg [31:0] MEMWB_IR; // For monitoring the pipeline
-   wire [31:0] MemOut;
-   assign MemOut = DMemory[EXMEM_ALUOut>>2];
-   always @(negedge clock) if (EXMEM_MemWrite) DMemory[EXMEM_ALUOut>>2] <= EXMEM_RD2;
+   reg [15:0] DMemory[0:1023],MEMWB_MemOut,MEMWB_ALUOut;
+   reg [15:0] MEMWB_IR; // For monitoring the pipeline
+   wire [15:0] MemOut;
+   assign MemOut = DMemory[EXMEM_ALUOut>>1];
+   always @(negedge clock) if (EXMEM_MemWrite) DMemory[EXMEM_ALUOut>>1] <= EXMEM_RD2;
 // WB
-   assign WD = (MEMWB_MemtoReg) ? MEMWB_MemOut: MEMWB_ALUOut; // MemtoReg Mux
+   sexdecuplexmux2x1 muxWD(MEMWB_ALUOut,MEMWB_MemOut,MEMWB_MemtoReg,WD);
 
    initial begin
     PC = 0;
 // Initialize pipeline registers
-    IDEX_RegWrite=0;IDEX_MemtoReg=0;IDEX_Branch=0;IDEX_MemWrite=0;IDEX_ALUSrc=0;IDEX_RegDst=0;IDEX_ALUOp=0;
+    IDEX_RegWrite=0;IDEX_MemtoReg=0;IDEX_Bne=0; IDEX_Beq=0;IDEX_MemWrite=0;IDEX_ALUSrc=0;IDEX_RegDst=0;IDEX_ALUOp=0;
     IFID_IR=0;
-    EXMEM_RegWrite=0;EXMEM_MemtoReg=0;EXMEM_Branch=0;EXMEM_MemWrite=0;
+    EXMEM_RegWrite=0;EXMEM_MemtoReg=0;EXMEM_Bne=0; EXMEM_Beq=0;EXMEM_MemWrite=0;
     EXMEM_Target=0;
     MEMWB_RegWrite=0;MEMWB_MemtoReg=0;
    end
@@ -299,21 +328,22 @@ module CPU (clock,PC,IFID_IR,IDEX_IR,EXMEM_IR,MEMWB_IR,WD);
 // IF
     PC <= NextPC;
     IFID_PCplus4 <= PCplus4;
-    IFID_IR <= IMemory[PC>>2];
+    IFID_IR <= IMemory[PC>>1];
 // ID
     IDEX_IR <= IFID_IR; // For monitoring the pipeline
-    {IDEX_RegDst,IDEX_ALUSrc,IDEX_MemtoReg,IDEX_RegWrite,IDEX_MemWrite,IDEX_Branch,IDEX_ALUOp} <= Control;   
+    {IDEX_RegDst,IDEX_ALUSrc,IDEX_MemtoReg,IDEX_RegWrite,IDEX_MemWrite,IDEX_Beq,IDEX_Bne,IDEX_ALUOp} <= Control;   
     IDEX_PCplus4 <= IFID_PCplus4;
     IDEX_RD1 <= RD1; 
     IDEX_RD2 <= RD2;
     IDEX_SignExt <= SignExtend;
-    IDEX_rt <= IFID_IR[20:16];
-    IDEX_rd <= IFID_IR[15:11];
+    IDEX_rt <= IFID_IR[9:8];
+    IDEX_rd <= IFID_IR[7:6];
 // EXE
     EXMEM_IR <= IDEX_IR; // For monitoring the pipeline
     EXMEM_RegWrite <= IDEX_RegWrite;
     EXMEM_MemtoReg <= IDEX_MemtoReg;
-    EXMEM_Branch   <= IDEX_Branch;
+    EXMEM_Beq   <= IDEX_Beq;
+    EXMEM_Bne   <= IDEX_Bne;
     EXMEM_MemWrite <= IDEX_MemWrite;
     EXMEM_Target <= Target;
     EXMEM_Zero <= Zero;
@@ -342,7 +372,7 @@ module test ();
     $display ("PC   IFID_IR  IDEX_IR  EXMEM_IR MEMWB_IR  WD");
     $monitor ("%3d  %h %h %h %h %2d",PC,IFID_IR,IDEX_IR,EXMEM_IR,MEMWB_IR,WD);
     clock = 1;
-    #69 $finish;
+    #71 $finish;
   end
 endmodule
 
